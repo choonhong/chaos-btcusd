@@ -81,8 +81,6 @@ func GetPrice(w http.ResponseWriter, r *http.Request) {
 		fromTime, err1 := time.Parse(layout, from)
 		toTime, err2 := time.Parse(layout, to)
 		if err1 != nil || err2 != nil {
-			fmt.Println(err1)
-			fmt.Println(err2)
 			utils.ResponseJSON(w, http.StatusBadRequest, nil)
 			return
 		}
@@ -109,7 +107,7 @@ func getLatestPrice() int {
 func getPrice(requestedTime time.Time) float64 {
 	var rate1, rate2 model.ExchangeRate
 	database.DB.Last(&rate1, "created_at <= ?", requestedTime)
-	if rate1.CreatedAt == requestedTime {
+	if rate1.CreatedAt.Unix() == requestedTime.Unix() {
 		return float64(rate1.USD)
 	}
 	database.DB.First(&rate2, "created_at > ?", requestedTime)

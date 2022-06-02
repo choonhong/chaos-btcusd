@@ -11,6 +11,16 @@ import (
 
 var timeNow = time.Now()
 
+func TestFetchPrice(t *testing.T) {
+	var rate model.ExchangeRate
+	database.Connect()
+	database.DB.Delete(&model.ExchangeRate{}, "id > 0")
+	FetchPrice() 
+	database.DB.Last(&rate)
+	assert.NotEqual(t, 0, rate.USD)
+	assert.NotEqual(t, 0, lastPrice)
+}
+
 func TestGetBTCToUSD(t *testing.T) {
 	price, err := getBTCToUSD() 
 	assert.NoError(t, err)
@@ -61,6 +71,11 @@ func TestGetPrice(t *testing.T) {
 	t.Run("no price after", func(t *testing.T) {
 		price := getPrice(timeNow.Add(time.Hour))
 		assert.Equal(t, float64(30317), price)
+	})
+
+	t.Run("have price at timestamp", func(t *testing.T) {
+		price := getPrice(timeNow)
+		assert.Equal(t, float64(30287), price)
 	})
 
 	t.Run("in between", func(t *testing.T) {
