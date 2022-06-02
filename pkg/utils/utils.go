@@ -27,7 +27,7 @@ func ResponseJSON(w http.ResponseWriter, statusCode int, data interface{}) {
 	responseWriter(w, &response)
 }
 
-// RespondJSON return a response status ok with data
+// responseWriter return a response
 func responseWriter(w http.ResponseWriter, response *Response) {
 	responseData, err := json.Marshal(response)
 	if err != nil {

@@ -1,19 +1,24 @@
 package database
 
 import (
+	"fmt"
+
 	"github.com/chaos-btcusd/pkg/model"
-	"gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
 
 func Connect() error {
 	var err error
-	dsn := "root:root@tcp(btcusd-db:3306)/pricing?charset=utf8mb4&parseTime=True&loc=Local"
-  DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	DB, err = gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
 		return err
 	}
+	fmt.Println("connect database successfully")
 	return DB.AutoMigrate(&model.ExchangeRate{})
 }
