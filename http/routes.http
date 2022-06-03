@@ -2,12 +2,12 @@
 
 ###
 # Get last price endpoint
-GET {{apiUrl}}/price
+GET {{apiUrl}}
 
 ###
 # Get a price endpoint with timestamp
-GET {{apiUrl}}/price?timestamp=2022-06-01T18:39:47Z
+GET {{apiUrl}}?timestamp=2022-06-01T18:39:47Z
 
 ###
 # Get average price endpoint with time range
-GET {{apiUrl}}/price?from=2022-06-01T18:39:04Z&to=2023-06-01T18:47:47Z
+GET {{apiUrl}}?from=2022-06-01T18:39:04Z&to=2023-06-01T18:47:47Z
