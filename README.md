@@ -4,7 +4,6 @@ This is a project that fetch BTC-USD price from public API and stores them in a 
 
 <br />
 
-
 ## To run in docker
 
 ```
