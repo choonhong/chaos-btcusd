@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -10,52 +9,6 @@ import (
 	"github.com/chaos-btcusd/pkg/model"
 	"github.com/chaos-btcusd/pkg/utils"
 )
-
-var (
-	lastPrice int
-	lastTime 	time.Time
-)
-
-// FetchPrice gets BTC-USD and stores price in database
-func FetchPrice() {
-	usd, err := getBTCToUSD()
-	if err != nil {
-		fmt.Println("failed to get price, error: ", err)
-		return
-	}
-
-	lastPrice = usd
-	lastTime = time.Now().Round(time.Second)
-	if err := addPrice(usd, lastTime); err != nil {
-		fmt.Println("failed to insert price into database, error: ", err)
-		return
-	}
-}
-
-// get BTC-USD price
-func getBTCToUSD() (int, error) {
-	res, err := http.Get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd")
-	if err != nil {
-		return 0, err
-	}
-
-	var price map[string]map[string]int
-	err = json.NewDecoder(res.Body).Decode(&price)
-	if err != nil {
-		return 0, err
-	}
-
-	return price["bitcoin"]["usd"], nil
-}
-
-// insert price into database
-func addPrice(usd int, createdAt time.Time) error {
-	rate := model.ExchangeRate{
-		USD: 			 usd,
-		CreatedAt: createdAt,
-	}
-	return database.DB.Create(&rate).Error
-}
 
 // GetPrice returns BTC-USD price
 func GetPrice(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +23,7 @@ func GetPrice(w http.ResponseWriter, r *http.Request) {
 			utils.ResponseJSON(w, http.StatusBadRequest, nil)
 			return
 		}
-		utils.ResponseJSON(w, http.StatusOK, getPrice(requestedTime))
+		utils.ResponseJSON(w, http.StatusOK, getPriceWithTime(requestedTime))
 		return
 	}
 
@@ -104,7 +57,7 @@ func getLatestPrice() int {
 }
 
 // get price at a given timestamp
-func getPrice(requestedTime time.Time) float64 {
+func getPriceWithTime(requestedTime time.Time) float64 {
 	var rate1, rate2 model.ExchangeRate
 	database.DB.Last(&rate1, "created_at <= ?", requestedTime)
 	if rate1.CreatedAt.Unix() == requestedTime.Unix() {
