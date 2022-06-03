@@ -13,8 +13,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 # Build the app
-RUN cd cmd/run && go build -a -o /app/btcusd-api
+RUN go build -a -o /app/chaos-btcusd
 
 # Run the compiled app
-CMD ["/app/btcusd-api"]
+CMD ["/app/chaos-btcusd"]
 EXPOSE 80

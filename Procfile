@@ -1,1 +1,1 @@
-web: build/btcusd-api
+web: bin/chaos-btcusd
