@@ -1,1 +1,1 @@
-web: bin/chaos-btcusd
+web: /app/chaos-btcusd
