@@ -17,3 +17,4 @@ RUN cd cmd/run && go build -a -o /app/btcusd-api
 
 # Run the compiled app
 CMD ["/app/btcusd-api"]
+EXPOSE 80
