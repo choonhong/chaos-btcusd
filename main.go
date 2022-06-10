@@ -30,7 +30,7 @@ func init() {
 func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
-	r.Get("/price", handlers.GetPrice)
+	r.Get("/{coin}", handlers.GetPrice)
 
 	http.ListenAndServe(":80", r)
 }

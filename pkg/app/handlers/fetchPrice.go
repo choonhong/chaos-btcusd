@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -48,6 +49,9 @@ func getCoinToUSD(coin string) (float64, error) {
 
 // insert price into database
 func addPrice(coin string, usd float64, createdAt time.Time) error {
+	if database.DB == nil {
+		return errors.New("database not connected")
+	}
 	rate := model.ExchangeRate{
 		Coin:      coin,
 		USD:       usd,

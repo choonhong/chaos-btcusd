@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http/httptest"
 	"os"
@@ -9,27 +10,43 @@ import (
 
 	"github.com/chaos-btcusd/pkg/database"
 	"github.com/chaos-btcusd/pkg/model"
+	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetLatestPrice(t *testing.T) {
-	database.Connect()
-	defer os.Remove("gorm.db")
-
-	database.DB.Create(&model.ExchangeRate{
-		Coin:      "bitcoin",
-		USD:       30287,
-		CreatedAt: timeNow,
+	t.Run("no db", func(t *testing.T) {
+		database.DB = nil
+		_, err := getLatestPrice("bitcoin")
+		assert.Error(t, err)
 	})
 
-	usd, err := getLatestPrice("bitcoin")
-	assert.NoError(t, err)
-	assert.Equal(t, float64(30287), usd)
+	t.Run("normal", func(t *testing.T) {
+		database.Connect()
+		defer os.Remove("./gorm.db")
+
+		database.DB.Create(&model.ExchangeRate{
+			Coin:      "bitcoin",
+			USD:       30287,
+			CreatedAt: timeNow,
+		})
+
+		usd, err := getLatestPrice("bitcoin")
+		assert.NoError(t, err)
+		assert.Equal(t, float64(30287), usd)
+	})
+
 }
 
 func TestGetPriceWithTime(t *testing.T) {
+	t.Run("no db", func(t *testing.T) {
+		database.DB = nil
+		_, err := getPriceAtTime("bitcoin", timeNow)
+		assert.Error(t, err)
+	})
+
 	database.Connect()
-	defer os.Remove("gorm.db")
+	defer os.Remove("./gorm.db")
 
 	database.DB.Create(&model.ExchangeRate{
 		Coin:      "bitcoin",
@@ -68,8 +85,14 @@ func TestGetPriceWithTime(t *testing.T) {
 }
 
 func TestGetAveragePrice(t *testing.T) {
+	t.Run("no db", func(t *testing.T) {
+		database.DB = nil
+		_, err := getAveragePrice("bitcoin", timeNow, timeNow)
+		assert.Error(t, err)
+	})
+
 	database.Connect()
-	defer os.Remove("gorm.db")
+	defer os.Remove("./gorm.db")
 
 	database.DB.Create(&model.ExchangeRate{
 		Coin:      "bitcoin",
@@ -90,7 +113,7 @@ func TestGetAveragePrice(t *testing.T) {
 // TestGetPrice assume all above tests passes
 func TestGetPrice(t *testing.T) {
 	database.Connect()
-	defer os.Remove("gorm.db")
+	defer os.Remove("./gorm.db")
 
 	database.DB.Create(&model.ExchangeRate{
 		Coin:      "bitcoin",
@@ -104,7 +127,10 @@ func TestGetPrice(t *testing.T) {
 	})
 
 	t.Run("get last price", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "localhost:80/price", nil)
+		req := httptest.NewRequest("GET", "localhost:80/bitcoin", nil)
+		rctx := chi.NewRouteContext()
+		rctx.URLParams.Add("coin", "bitcoin")
+		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 		w := httptest.NewRecorder()
 		GetPrice(w, req)
 
@@ -116,7 +142,7 @@ func TestGetPrice(t *testing.T) {
 	})
 
 	t.Run("bad timestamp", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "localhost:80/price?timestamp=2022-06-01T18:39:", nil)
+		req := httptest.NewRequest("GET", "localhost:80/bitcoin?timestamp=2022-06-01T18:39:", nil)
 		w := httptest.NewRecorder()
 		GetPrice(w, req)
 
@@ -125,7 +151,10 @@ func TestGetPrice(t *testing.T) {
 	})
 
 	t.Run("get price at timestamp", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "localhost:80/price?timestamp=2022-06-01T18:39:47Z", nil)
+		req := httptest.NewRequest("GET", "localhost:80/bitcoin?timestamp=2022-06-01T18:39:47Z", nil)
+		rctx := chi.NewRouteContext()
+		rctx.URLParams.Add("coin", "bitcoin")
+		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 		w := httptest.NewRecorder()
 		GetPrice(w, req)
 
@@ -137,7 +166,7 @@ func TestGetPrice(t *testing.T) {
 	})
 
 	t.Run("bad time range", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "localhost:80/price?from=2022-06-01T18:39:04Z&to=2023-06-01T18:47:", nil)
+		req := httptest.NewRequest("GET", "localhost:80/bitcoin?from=2022-06-01T18:39:04Z&to=2023-06-01T18:47:", nil)
 		w := httptest.NewRecorder()
 		GetPrice(w, req)
 
@@ -146,7 +175,10 @@ func TestGetPrice(t *testing.T) {
 	})
 
 	t.Run("get average price", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "localhost:80/price?from=2022-06-01T18:39:04Z&to=2023-06-01T18:47:47Z", nil)
+		req := httptest.NewRequest("GET", "localhost:80/bitcoin?from=2022-06-01T18:39:04Z&to=2023-06-01T18:47:47Z", nil)
+		rctx := chi.NewRouteContext()
+		rctx.URLParams.Add("coin", "bitcoin")
+		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 		w := httptest.NewRecorder()
 		GetPrice(w, req)
 
