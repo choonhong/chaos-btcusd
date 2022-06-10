@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -35,7 +34,7 @@ func main() {
 	r.Get("/{coin}", handlers.GetPrice)
 
 	if http.ListenAndServe(":80", r) != nil {
-		fmt.Println("serve on :80 error")
+		// for deploying on heroku
 		http.ListenAndServe(":"+os.Getenv("PORT"), r)
 	}
 }
