@@ -5,7 +5,8 @@ import (
 )
 
 type ExchangeRate struct {
-	ID   			uint
-	USD  		  int
+	ID        uint
+	Coin      string
+	USD       float64
 	CreatedAt time.Time `gorm:"index"`
 }

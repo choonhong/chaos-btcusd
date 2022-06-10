@@ -10,47 +10,47 @@ import (
 	"github.com/chaos-btcusd/pkg/model"
 )
 
-var (
-	lastPrice int
-	lastTime 	time.Time
-)
+var supportedCoins = []string{"bitcoin", "ethereum"}
 
-// FetchPrice gets BTC-USD and stores price in database
-func FetchPrice() {
-	usd, err := getBTCToUSD()
-	if err != nil {
-		fmt.Println("failed to get price, error: ", err)
-		return
-	}
+// FetchPrices gets BTC-USD and stores price in database
+func FetchPrices() {
+	for _, coin := range supportedCoins {
+		timeNow := time.Now().Round(time.Second)
+		usd, err := getCoinToUSD(coin)
+		if err != nil || usd == 0 {
+			fmt.Println("failed to get price from 3rd party API, error: ", err)
+			continue
+		}
 
-	lastPrice = usd
-	lastTime = time.Now().Round(time.Second)
-	if err := addPrice(usd, lastTime); err != nil {
-		fmt.Println("failed to insert price into database, error: ", err)
-		return
+		if err := addPrice(coin, usd, timeNow); err != nil {
+			fmt.Println("failed to insert price into database, error: ", err)
+			continue
+		}
+
+		fmt.Println(coin, usd, timeNow)
 	}
-	fmt.Println(lastPrice, lastTime)
 }
 
-// get BTC-USD price
-func getBTCToUSD() (int, error) {
-	res, err := http.Get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd")
+// get price
+func getCoinToUSD(coin string) (float64, error) {
+	res, err := http.Get("https://api.coingecko.com/api/v3/simple/price?ids=" + coin + "&vs_currencies=usd")
 	if err != nil {
 		return 0, err
 	}
 
-	var price map[string]map[string]int
+	var price map[string]map[string]float64
 	if err := json.NewDecoder(res.Body).Decode(&price); err != nil {
 		return 0, err
 	}
 
-	return price["bitcoin"]["usd"], nil
+	return price[coin]["usd"], nil
 }
 
 // insert price into database
-func addPrice(usd int, createdAt time.Time) error {
+func addPrice(coin string, usd float64, createdAt time.Time) error {
 	rate := model.ExchangeRate{
-		USD: 			 usd,
+		Coin:      coin,
+		USD:       usd,
 		CreatedAt: createdAt,
 	}
 	return database.DB.Create(&rate).Error

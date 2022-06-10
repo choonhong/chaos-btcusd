@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -12,27 +14,38 @@ import (
 var timeNow = time.Now()
 
 func TestFetchPrice(t *testing.T) {
-	var rate model.ExchangeRate
 	database.Connect()
-	database.DB.Delete(&model.ExchangeRate{}, "id > 0")
-	FetchPrice() 
-	database.DB.Last(&rate)
-	assert.NotEqual(t, 0, rate.USD)
-	assert.NotEqual(t, 0, lastPrice)
+	defer os.Remove("gorm.db")
+	FetchPrices()
+	for _, coin := range supportedCoins {
+		fmt.Println(coin)
+		var rate model.ExchangeRate
+		database.DB.Last(&rate, "coin = ?", coin)
+		assert.Equal(t, coin, rate.Coin)
+		assert.NotEqual(t, 0, rate.USD)
+	}
 }
 
-func TestGetBTCToUSD(t *testing.T) {
-	price, err := getBTCToUSD() 
+func TestGetCoinToUSD(t *testing.T) {
+	price, err := getCoinToUSD("bitcoin")
 	assert.NoError(t, err)
 	assert.NotEqual(t, 0, price)
 }
 
 func TestAddPrice(t *testing.T) {
-	var rate model.ExchangeRate
-	database.Connect()
-	database.DB.Delete(&model.ExchangeRate{}, "id > 0")
-	assert.NoError(t, addPrice(30287, timeNow))
-	database.DB.Last(&rate)
-	assert.Equal(t, 30287, rate.USD)
-	assert.Equal(t, timeNow.Unix(), rate.CreatedAt.Unix())
+	t.Run("db error", func(t *testing.T) {
+		assert.Error(t, addPrice("bitcoin", 30287, timeNow))
+	})
+
+	t.Run("normal", func(t *testing.T) {
+		var rate model.ExchangeRate
+		database.Connect()
+		defer os.Remove("gorm.db")
+		assert.NoError(t, addPrice("bitcoin", 30287, timeNow))
+		database.DB.Last(&rate)
+		assert.Equal(t, "bitcoin", rate.Coin)
+		assert.Equal(t, float64(30287), rate.USD)
+		assert.Equal(t, timeNow.Unix(), rate.CreatedAt.Unix())
+	})
+
 }

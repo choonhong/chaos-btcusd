@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -12,85 +13,95 @@ import (
 )
 
 func TestGetLatestPrice(t *testing.T) {
-	rate := model.ExchangeRate{
-		USD: 30287,
-		CreatedAt: timeNow,
-	}
 	database.Connect()
-	database.DB.Delete(&model.ExchangeRate{}, "id > 0")
-	database.DB.Create(&rate)
-	usd := getLatestPrice()
-	assert.Equal(t, 30287, usd)
+	defer os.Remove("gorm.db")
+
+	database.DB.Create(&model.ExchangeRate{
+		Coin:      "bitcoin",
+		USD:       30287,
+		CreatedAt: timeNow,
+	})
+
+	usd, err := getLatestPrice("bitcoin")
+	assert.NoError(t, err)
+	assert.Equal(t, float64(30287), usd)
 }
 
 func TestGetPriceWithTime(t *testing.T) {
 	database.Connect()
-	database.DB.Delete(&model.ExchangeRate{}, "id > 0")
-	rate1 := model.ExchangeRate{
-		USD: 30287,
+	defer os.Remove("gorm.db")
+
+	database.DB.Create(&model.ExchangeRate{
+		Coin:      "bitcoin",
+		USD:       30287,
 		CreatedAt: timeNow,
-	}
-	rate2 := model.ExchangeRate{
-		USD: 30317,
+	})
+	database.DB.Create(&model.ExchangeRate{
+		Coin:      "bitcoin",
+		USD:       30317,
 		CreatedAt: timeNow.Add(time.Minute * 3),
-	}
-	database.DB.Create(&rate1)
-	database.DB.Create(&rate2)
+	})
 
 	t.Run("no price before", func(t *testing.T) {
-		price := getPriceWithTime(timeNow.Add(-time.Hour))
+		price, err := getPriceAtTime("bitcoin", timeNow.Add(-time.Hour))
+		assert.NoError(t, err)
 		assert.Equal(t, float64(30287), price)
 	})
 
 	t.Run("no price after", func(t *testing.T) {
-		price := getPriceWithTime(timeNow.Add(time.Hour))
+		price, err := getPriceAtTime("bitcoin", timeNow.Add(time.Hour))
+		assert.NoError(t, err)
 		assert.Equal(t, float64(30317), price)
 	})
 
 	t.Run("have price at timestamp", func(t *testing.T) {
-		price := getPriceWithTime(timeNow)
+		price, err := getPriceAtTime("bitcoin", timeNow)
+		assert.NoError(t, err)
 		assert.Equal(t, float64(30287), price)
 	})
 
 	t.Run("in between", func(t *testing.T) {
-		price := getPriceWithTime(timeNow.Add(time.Minute * 2))
+		price, err := getPriceAtTime("bitcoin", timeNow.Add(time.Minute*2))
+		assert.NoError(t, err)
 		assert.Equal(t, float64(30307), price)
 	})
 }
 
 func TestGetAveragePrice(t *testing.T) {
 	database.Connect()
-	database.DB.Delete(&model.ExchangeRate{}, "id > 0")
-	rate1 := model.ExchangeRate{
-		USD: 30287,
-		CreatedAt: timeNow,
-	}
-	rate2 := model.ExchangeRate{
-		USD: 30317,
-		CreatedAt: timeNow.Add(time.Minute * 3),
-	}
-	database.DB.Create(&rate1)
-	database.DB.Create(&rate2)
+	defer os.Remove("gorm.db")
 
-	price := getAveragePrice(timeNow, timeNow.Add(time.Minute * 3))
+	database.DB.Create(&model.ExchangeRate{
+		Coin:      "bitcoin",
+		USD:       30287,
+		CreatedAt: timeNow,
+	})
+	database.DB.Create(&model.ExchangeRate{
+		Coin:      "bitcoin",
+		USD:       30317,
+		CreatedAt: timeNow.Add(time.Minute * 3),
+	})
+
+	price, err := getAveragePrice("bitcoin", timeNow, timeNow.Add(time.Minute*3))
+	assert.NoError(t, err)
 	assert.Equal(t, float64(30302), price)
 }
 
 // TestGetPrice assume all above tests passes
 func TestGetPrice(t *testing.T) {
 	database.Connect()
-	database.DB.Delete(&model.ExchangeRate{}, "id > 0")
-	rate1 := model.ExchangeRate{
-		USD: 30287,
-		CreatedAt: timeNow,
-	}
-	rate2 := model.ExchangeRate{
-		USD: 30317,
-		CreatedAt: timeNow.Add(time.Minute * 3),
-	}
-	database.DB.Create(&rate1)
-	database.DB.Create(&rate2)
+	defer os.Remove("gorm.db")
 
+	database.DB.Create(&model.ExchangeRate{
+		Coin:      "bitcoin",
+		USD:       30287,
+		CreatedAt: timeNow,
+	})
+	database.DB.Create(&model.ExchangeRate{
+		Coin:      "bitcoin",
+		USD:       30317,
+		CreatedAt: timeNow.Add(time.Minute * 3),
+	})
 
 	t.Run("get last price", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "localhost:80/price", nil)
@@ -102,19 +113,6 @@ func TestGetPrice(t *testing.T) {
 		assert.Equal(t, 200, res.StatusCode)
 		assert.NoError(t, json.NewDecoder(res.Body).Decode(&price))
 		assert.Equal(t, 30317, price["data"])
-	})
-
-	t.Run("get last price from db", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "localhost:80/price", nil)
-		w := httptest.NewRecorder()
-		lastPrice = 20317
-		GetPrice(w, req)
-
-		var price map[string]int
-		res := w.Result()
-		assert.Equal(t, 200, res.StatusCode)
-		assert.NoError(t, json.NewDecoder(res.Body).Decode(&price))
-		assert.Equal(t, 20317, price["data"])
 	})
 
 	t.Run("bad timestamp", func(t *testing.T) {

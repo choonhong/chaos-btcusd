@@ -18,11 +18,11 @@ func init() {
 	}
 
 	// fetch exchange rate once per minute
-	handlers.FetchPrice()
+	handlers.FetchPrices()
 	ticker := time.NewTicker(time.Minute)
 	go func() {
 		for range ticker.C {
-			handlers.FetchPrice()
+			handlers.FetchPrices()
 		}
 	}()
 }
