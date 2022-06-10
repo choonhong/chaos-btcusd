@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/chaos-btcusd/pkg/app/handlers"
@@ -32,5 +34,8 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Get("/{coin}", handlers.GetPrice)
 
-	http.ListenAndServe(":80", r)
+	if http.ListenAndServe(":80", r) != nil {
+		fmt.Println("serve on :80 error")
+		http.ListenAndServe(":"+os.Getenv("PORT"), r)
+	}
 }

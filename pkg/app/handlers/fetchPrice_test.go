@@ -15,7 +15,7 @@ var timeNow = time.Now()
 
 func TestFetchPrice(t *testing.T) {
 	database.Connect()
-	defer os.Remove("./gorm.db")
+	defer os.Remove("gorm.db")
 	FetchPrices()
 	for _, coin := range supportedCoins {
 		fmt.Println(coin)
@@ -40,7 +40,7 @@ func TestAddPrice(t *testing.T) {
 	t.Run("normal", func(t *testing.T) {
 		var rate model.ExchangeRate
 		database.Connect()
-		defer os.Remove("./gorm.db")
+		defer os.Remove("gorm.db")
 		assert.NoError(t, addPrice("bitcoin", 30287, timeNow))
 		database.DB.Last(&rate)
 		assert.Equal(t, "bitcoin", rate.Coin)

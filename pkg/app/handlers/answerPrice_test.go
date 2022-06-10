@@ -23,7 +23,7 @@ func TestGetLatestPrice(t *testing.T) {
 
 	t.Run("normal", func(t *testing.T) {
 		database.Connect()
-		defer os.Remove("./gorm.db")
+		defer os.Remove("gorm.db")
 
 		database.DB.Create(&model.ExchangeRate{
 			Coin:      "bitcoin",
@@ -46,7 +46,7 @@ func TestGetPriceWithTime(t *testing.T) {
 	})
 
 	database.Connect()
-	defer os.Remove("./gorm.db")
+	defer os.Remove("gorm.db")
 
 	database.DB.Create(&model.ExchangeRate{
 		Coin:      "bitcoin",
@@ -92,7 +92,7 @@ func TestGetAveragePrice(t *testing.T) {
 	})
 
 	database.Connect()
-	defer os.Remove("./gorm.db")
+	defer os.Remove("gorm.db")
 
 	database.DB.Create(&model.ExchangeRate{
 		Coin:      "bitcoin",
@@ -113,7 +113,7 @@ func TestGetAveragePrice(t *testing.T) {
 // TestGetPrice assume all above tests passes
 func TestGetPrice(t *testing.T) {
 	database.Connect()
-	defer os.Remove("./gorm.db")
+	defer os.Remove("gorm.db")
 
 	database.DB.Create(&model.ExchangeRate{
 		Coin:      "bitcoin",
